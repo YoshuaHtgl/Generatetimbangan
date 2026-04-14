@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generate PDF ZIP</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background:#f5f5f5;
+  padding:20px;
+}
+
+.container {
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  max-width:400px;
+  margin:auto;
+  box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+h2 {
+  text-align:center;
+}
+
+label {
+  display:block;
+  margin-top:15px;
+  font-weight:bold;
+}
+
+input {
+  width:100%;
+  padding:8px;
+  margin-top:5px;
+  border:1px solid #ccc;
+  border-radius:5px;
+}
+
+button {
+  margin-top:20px;
+  width:100%;
+  padding:10px;
+  background:#28a745;
+  color:white;
+  border:none;
+  border-radius:5px;
+  font-size:16px;
+  cursor:pointer;
+}
+
+button:hover {
+  background:#218838;
+}
+
+button:disabled {
+  background:#999;
+  cursor:not-allowed;
+}
+
+.result {
+  margin-top:20px;
+  padding:10px;
+  border-radius:5px;
+  display:none;
+}
+
+.success {
+  background:#d4edda;
+  color:#155724;
+}
+
+.error {
+  background:#f8d7da;
+  color:#721c24;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>Generate PDF ZIP Timbangan</h2>
+
+  <label>Start Row:</label>
+  <input type="number" id="start" placeholder="Contoh: 2">
+
+  <label>End Row:</label>
+  <input type="number" id="end" placeholder="Contoh: 10">
+
+  <label>Email Tujuan:</label>
+  <input type="email" id="email" placeholder="contoh@email.com">
+
+  <button id="generateBtn">Generate & Send</button>
+
+  <div id="resultBox" class="result"></div>
+</div>
+
+<script>
+
+// ===== URL APPS SCRIPT =====
+const scriptURL = "https://script.google.com/macros/s/AKfycbw-nseO7pJkCoaBPtG0rG3xNgYBxSCse9Yh83fwTAQO7Z-r79zU7U10PNvMZ75LJ7OTxw/exec";
+
+const btn = document.getElementById("generateBtn");
+const resultBox = document.getElementById("resultBox");
+
+btn.addEventListener("click", async () => {
+
+  const start = document.getElementById("start").value;
+  const end = document.getElementById("end").value;
+  const email = document.getElementById("email").value;
+
+  // VALIDASI
+  if (!start || !end || !email) {
+    showResult("Semua field wajib diisi", false);
+    return;
+  }
+
+  if (!validateEmail(email)) {
+    showResult("Format email tidak valid", false);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Processing...";
+
+  try {
+
+    const response = await fetch(scriptURL, {
+      method: "POST",
+      body: new URLSearchParams({
+        start: start,
+        end: end,
+        email: email
+      })
+    });
+
+    const text = await response.text();
+
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error("Response bukan JSON: " + text);
+    }
+
+    if (data.status === "SUCCESS") {
+
+      showResult(
+        `✅ SUCCESS<br>
+        File ZIP sudah dikirim ke email<br><br>
+        Success: ${data.success}<br>
+        Skip: ${data.skip}<br>
+        Fail: ${data.fail}`,
+        true
+      );
+
+    } else {
+      showResult("❌ ERROR: " + data.message, false);
+    }
+
+  } catch (err) {
+    showResult("❌ ERROR: " + err.message, false);
+  }
+
+  btn.disabled = false;
+  btn.textContent = "Generate & Send";
+});
+
+
+// VALIDASI EMAIL
+function validateEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+
+// TAMPILKAN RESULT
+function showResult(message, isSuccess) {
+  resultBox.style.display = "block";
+  resultBox.className = "result " + (isSuccess ? "success" : "error");
+  resultBox.innerHTML = message;
+}
+
+</script>
+
+</body>
+</html>
